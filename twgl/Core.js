@@ -14,16 +14,16 @@ var twgl = (function () {
 
 
     const makeShader = (type, source) => {
-        const shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            gl.deleteShader(shader);
+        const program = gl.createShader(type);
+        gl.shaderSource(program, source);
+        gl.compileShader(program);
+        if (!gl.getShaderParameter(program, gl.COMPILE_STATUS)) {
+            gl.deleteShader(program);
             console.warn('Shader compile failed');
             console.log(source);
             throw 'Shader compile failed';
         }
-        return shader;
+        return program;
     }
 
     const clear = (r = 0, g = 0, b = 0, clearDepth = true) => {
@@ -36,6 +36,7 @@ var twgl = (function () {
 
     const render = (camera, scene = []) => {
         clear();
+        camera.updateProjection();
         camera.renderPrepare();
         scene.forEach(mesh => {
             mesh.renderPrepare(camera);
@@ -44,48 +45,75 @@ var twgl = (function () {
     }
 
 
-    const loadTexture = (url, callback = null) => {
+    const loadTexture = (url = null, callback = null) => {
         //https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL
-        const texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        const level = 0;
-        const internalFormat = gl.RGBA;
-        const width = 1;
-        const height = 1;
-        const border = 0;
-        const srcFormat = gl.RGBA;
-        const srcType = gl.UNSIGNED_BYTE;
-        const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
+        const texture = {
+            glTexture: gl.createTexture(),
+            level: 0,
+            width: 1,
+            height: 1,
+            border: 0,
+            internalFormat: gl.RGBA,
+            srcFormat: gl.RGBA,
+            srcType: gl.UNSIGNED_BYTE,
+            srcImage: new Image(),
+            loaded: false
+        };
+        gl.bindTexture(gl.TEXTURE_2D, texture.glTexture);
+        
+        let pixel = null;
 
-        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-                      width, height, border, srcFormat, srcType,
-                      pixel);
+        if (url instanceof Array) {
+            pixel = new Uint8Array(url);
+        } else if (url instanceof String) {
+            pixel = new Uint8Array([ 0, 0, 0, 255 ]);
+        } else {
+            pixel = new Uint8Array([
+                Math.floor(Math.random() * 256),
+                Math.floor(Math.random() * 256),
+                Math.floor(Math.random() * 256),
+                255
+            ]);
+        }
 
-        const image = new Image();
-        image.isLoaded = false;
-        texture.sourceImage = image;
-        image.onload = function() {
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-                          srcFormat, srcType, image);
+        gl.texImage2D(
+            gl.TEXTURE_2D, 
+            texture.level, 
+            texture.internalFormat,
+            texture.width, texture.height, texture.border, 
+            texture.srcFormat, texture.srcType,
+            pixel
+        );
 
-            // WebGL1 has different requirements for power of 2 images
-            // vs non power of 2 images so check if the image is a
-            // power of 2 in both dimensions.
-            if ((image.width & (image.width - 1)) == 0 && (image.height & (image.height - 1)) == 0) {
-                // Yes, it's a power of 2. Generate mips.
-                gl.generateMipmap(gl.TEXTURE_2D);
+        if (url instanceof Array || url === null) return texture;
+
+        texture.srcImage.onload = function() {
+            gl.bindTexture(gl.TEXTURE_2D, texture.glTexture);
+            gl.texImage2D(
+                gl.TEXTURE_2D, 
+                texture.level, 
+                texture.internalFormat,
+                texture.srcFormat, 
+                texture.srcType, 
+                texture.srcImage
+            );
+
+            texture.width = texture.srcImage.width;
+            texture.height = texture.srcImage.height;
+
+            if ((texture.width & (texture.width - 1)) == 0 && (texture.height & (texture.height - 1)) == 0) {
+                gl.generateMipmap(gl.TEXTURE_2D); //power of 2
             } else {
-                // No, it's not a power of 2. Turn off mips and set
-                // wrapping to clamp to edge
+                //not power of 2
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             }
-            image.isLoaded = true;
-            if (callback !== null) callback(url, texture);
+            texture.loaded = true;
+            texture.srcImage = null; //dereference unneeded Image instance
+            if (callback !== null) callback(texture);
         };
-        image.src = url;
+        texture.srcImage.src = url;
         return texture;
     }
 

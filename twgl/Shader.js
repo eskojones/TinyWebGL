@@ -1,4 +1,5 @@
 twgl = Object.assign(twgl, (function () {
+    let ShaderID = 0;
     const ShaderLib = {
         'main': {
             vertex: `
@@ -7,14 +8,17 @@ twgl = Object.assign(twgl, (function () {
                 uniform mat4 uModelViewMatrix;
                 uniform mat4 uProjectionMatrix;
                 varying highp vec2 vTextureCoord;
+                varying highp vec3 vVertexPosition;
 
                 void main(void) {
                     gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition,1.0);
                     vTextureCoord = aTextureCoord;
+                    vVertexPosition = aVertexPosition;
                 }
             `,
             fragment: `
                 varying highp vec2 vTextureCoord;
+                varying highp vec3 vVertexPosition;
                 uniform sampler2D uSampler;
                 void main(void) {
                     gl_FragColor = texture2D(uSampler, vTextureCoord);
@@ -38,6 +42,7 @@ twgl = Object.assign(twgl, (function () {
         this.program = program;
         this.attribLocations = { };
         this.uniformLocations = { };
+        this.id = twgl.ShaderID++;
 
         const getShaderVars = (source) => {
             let out = [];
@@ -74,6 +79,7 @@ twgl = Object.assign(twgl, (function () {
     }
     
     return {
+        ShaderID,
         ShaderLib,
         Shader
     }

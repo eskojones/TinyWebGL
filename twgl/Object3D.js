@@ -52,7 +52,7 @@ twgl = Object.assign(twgl, (function () {
     }
 
     Object3D.prototype.setRotationFromMatrix = function () {
-		this.rotation.setRotationFromMatrix(this.matrix);
+        this.rotation.setRotationFromMatrix(this.matrix);
     }
 
 	Object3D.prototype.translate = function (distance, axis) {

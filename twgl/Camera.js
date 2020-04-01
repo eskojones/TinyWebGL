@@ -5,10 +5,11 @@ twgl = Object.assign(twgl, (function () {
         this.fov = fov;
         this.near = zNear;
         this.far = zFar;
+        this.activeShader = { id: -1 };
         this.matrixWorldInverse = new Matrix4();
         this.projectionMatrix = Matrix4.makePerspective(fov, aspect, zNear, zFar);
         this.projectionMatrixInverse = new Matrix4();
-        this.projectionMatrixArray = [];
+        this.projectionMatrixArray = this.projectionMatrix.flatten();
         this.updateProjection();
     }
 
@@ -21,7 +22,6 @@ twgl = Object.assign(twgl, (function () {
     }
 
     Camera.prototype.renderPrepare = function () {
-        this.projectionMatrixArray = this.projectionMatrix.flatten();
     }
 
     return {

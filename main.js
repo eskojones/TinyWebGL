@@ -16,7 +16,7 @@ const main = () => {
         twgl.ShaderLib.main.fragment
     );
 
-    for (let i = 0; i < 10000; i++) {
+    for (let i = 0; i < 400; i++) {
         let quad = new twgl.Mesh(
             new Vector3(1,1,1), 
             twgl.MeshLib.quad.vertices,
@@ -24,8 +24,8 @@ const main = () => {
             twgl.MeshLib.quad.uvs,
             shader
         );
-        let x = i % 100;
-        let y = Math.floor(i / 100);
+        let x = i % 20;
+        let y = Math.floor(i / 20);
         quad.position.set(x * 2, 0, y * 2);
         quad.rotation.set(twgl.deg2rad * -90, 0, 0);
         quad.texture = grass;
@@ -56,18 +56,69 @@ const main = () => {
     //     scene.push(cube);
     // }
 
-    window.onkeypress = function (e) {
-        console.log(e.which);
-        if (e.which == 119) camera.position.addSelf(camera.forward);
-        else if (e.which == 115) camera.position.subSelf(camera.forward);
-        else if (e.which == 97) camera.position.subSelf(camera.right);
-        else if (e.which == 100) camera.position.addSelf(camera.right);
-        else if (e.which == 113) camera.rotation.y += 0.1;
-        else if (e.which == 101) camera.rotation.y -= 0.1;
+    let keys = {
+        forward: 87,
+        back: 83,
+        left: 65,
+        right: 68,
+        turnLeft: 81,
+        turnRight: 69
+    };
+    let inputs = {
+        forward: false,
+        back: false,
+        left: false,
+        right: false,
+        turnLeft: false,
+        turnRight: false
+    };
+
+    window.onkeydown = function (e) {
+        let props = Object.keys(keys);
+        for (let i = 0; i < props.length; i++) {
+            if (e.keyCode === keys[props[i]]) {
+                inputs[props[i]] = true;
+                break;
+            }
+        }
+    }
+
+    window.onkeyup = function (e) {
+        let props = Object.keys(keys);
+        for (let i = 0; i < props.length; i++) {
+            if (e.keyCode === keys[props[i]]) {
+                inputs[props[i]] = false;
+                break;
+            }
+        }
+    }
+
+    const update = () => {
+        let props = Object.keys(inputs);
+        for (let i = 0; i < props.length; i++) {
+            if (inputs[props[i]]) {
+                //console.log(props[i]);
+                switch(props[i]) {
+                    case 'forward':
+                        camera.position.addSelf(camera.forward);
+                        break;
+                    case 'back':
+                        camera.position.subSelf(camera.forward);
+                        break;
+                    case 'left':
+                        camera.position.subSelf(camera.right);
+                        break;
+                    case 'right':
+                        camera.position.addSelf(camera.right);
+                        break;
+                }
+            }
+        }
     }
 
     
     const animate = (t) => {
+        update();
         // scene.forEach(c => {
         //     c.rotation.x += 0.01;
         //     c.rotation.y += 0.001;
